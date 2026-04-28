@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>クラス班分けツール</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #64748b;
+      --line: #dbe3ef;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --danger: #dc2626;
+      --ok: #15803d;
+      --soft: #eef4ff;
+      --shadow: 0 12px 30px rgba(31, 41, 55, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(238, 244, 255, 0.9), rgba(247, 248, 251, 0.35) 280px),
+        var(--bg);
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 30px 0 44px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 4vw, 42px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 720px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 420px) 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .panel-head {
+      padding: 18px 18px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+    }
+
+    input, select {
+      height: 42px;
+      padding: 0 12px;
+    }
+
+    textarea {
+      min-height: 220px;
+      padding: 12px;
+      resize: vertical;
+      line-height: 1.65;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 128px;
+      gap: 10px;
+    }
+
+    .pair-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .private-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdff;
+      padding: 12px;
+    }
+
+    .private-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .private-title {
+      display: grid;
+      gap: 3px;
+    }
+
+    .private-title strong {
+      font-size: 14px;
+    }
+
+    .private-title span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .private-editor {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .private-editor[hidden] {
+      display: none;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--accent-dark);
+    }
+
+    .secondary {
+      color: var(--ink);
+      background: #fff;
+      border-color: var(--line);
+    }
+
+    .secondary:hover {
+      background: var(--soft);
+    }
+
+    .danger {
+      color: var(--danger);
+      background: #fff;
+      border-color: #fecaca;
+      padding: 0 10px;
+    }
+
+    .danger:hover {
+      background: #fff1f2;
+    }
+
+    .hint {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .message {
+      display: none;
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #fff;
+      line-height: 1.55;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.error {
+      color: #991b1b;
+      border-color: #fecaca;
+      background: #fff1f2;
+    }
+
+    .message.warning {
+      color: #92400e;
+      border-color: #fed7aa;
+      background: #fffbeb;
+    }
+
+    .message.success {
+      color: #14532d;
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+    }
+
+    .groups {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+    }
+
+    .group {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .group-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--soft);
+      border-bottom: 1px solid var(--line);
+      font-weight: 800;
+    }
+
+    .group ol {
+      margin: 0;
+      padding: 10px 12px 12px 34px;
+      min-height: 70px;
+      line-height: 1.7;
+    }
+
+    .empty {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .saved-classes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .class-actions {
+      margin-top: 8px;
+    }
+
+    .class-list-panel {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdff;
+    }
+
+    .class-list-panel[hidden] {
+      display: none;
+    }
+
+    .class-list-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .class-chip {
+      min-height: 32px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .class-chip.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    @media (max-width: 900px) {
+      header {
+        display: block;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      header, .settings, .actions {
+        display: none;
+      }
+
+      .app {
+        width: 100%;
+        padding: 0;
+      }
+
+      .panel {
+        box-shadow: none;
+        border: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>クラス班分けツール</h1>
+        <p class="lead">名簿を貼り付け、班数を指定すると自動で振り分けます。クラスごとに班分け詳細を保存できます。</p>
+      </div>
+      <button class="secondary" id="printBtn">印刷</button>
+    </header>
+
+    <section class="layout">
+      <div class="panel settings">
+        <div class="panel-head">
+          <h2>設定</h2>
+          <span class="badge" id="studentCount">0人</span>
+        </div>
+        <div class="panel-body">
+          <div id="message" class="message"></div>
+
+          <div class="field">
+            <label for="className">クラス名</label>
+            <div class="row">
+              <input id="className" placeholder="例：1年A組">
+              <button class="secondary" id="saveClassBtn">保存</button>
+            </div>
+            <p class="hint" id="autosaveStatus">クラス名を入力すると、編集内容は自動保存されます。</p>
+            <div class="button-row class-actions">
+              <button class="secondary" id="newClassBtn" type="button">新しいクラスを作成</button>
+              <button class="secondary" id="toggleClassListBtn" type="button">保存クラス一覧を開く</button>
+              <button class="secondary" id="deleteClassBtn" type="button">このクラスを削除</button>
+            </div>
+            <p class="hint">生徒一覧と班分け詳細は、クラス名ごとに保存されます。</p>
+            <div class="class-list-panel" id="classListPanel" hidden>
+              <div class="class-list-head">
+                <span>保存済みクラス</span>
+                <span id="classListCount">0件</span>
+              </div>
+              <div class="saved-classes" id="savedClasses"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="names">名簿</label>
+            <textarea id="names" placeholder="1行に1人ずつ入力&#10;例：&#10;山田 太郎&#10;佐藤 花子&#10;鈴木 一郎"></textarea>
+            <p class="hint">Excelから1列分をそのまま貼り付けても使えます。空行は無視します。</p>
+          </div>
+
+          <div class="field">
+            <label for="groupCount">班の数</label>
+            <input id="groupCount" type="number" min="1" value="6">
+          </div>
+
+          <div class="field">
+            <label>班分け詳細</label>
+            <div class="private-box">
+              <div class="private-head">
+                <div class="private-title">
+                  <strong id="ngStatus">班分け詳細は非表示中</strong>
+                  <span>投影中に生徒名が見えないよう、必要な時だけ開けます。</span>
+                </div>
+                <button class="secondary" id="toggleNgBtn" type="button">班分け詳細を開く</button>
+              </div>
+              <div class="private-editor" id="ngEditor" hidden>
+                <div id="pairs"></div>
+                <button class="secondary" id="addPairBtn" type="button">詳細条件を追加</button>
+                <p class="hint">例：「山田 太郎」と「佐藤 花子」を同じ班にしない、という形で入力します。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row actions">
+            <button id="makeBtn">班分けする</button>
+            <button class="secondary" id="downloadBtn">CSV保存</button>
+            <button class="secondary" id="excelBtn">Excel保存</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>班分け結果</h2>
+          <span class="badge" id="resultInfo">未作成</span>
+        </div>
+        <div class="panel-body">
+          <div id="result" class="groups">
+            <p class="empty">左側に名簿を貼り付けて、「班分けする」を押してください。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const storageKey = "class-group-maker-v1";
+    const namesEl = document.getElementById("names");
+    const groupCountEl = document.getElementById("groupCount");
+    const classNameEl = document.getElementById("className");
+    const pairsEl = document.getElementById("pairs");
+    const resultEl = document.getElementById("result");
+    const messageEl = document.getElementById("message");
+    const savedClassesEl = document.getElementById("savedClasses");
+    const studentCountEl = document.getElementById("studentCount");
+    const resultInfoEl = document.getElementById("resultInfo");
+    const ngEditorEl = document.getElementById("ngEditor");
+    const ngStatusEl = document.getElementById("ngStatus");
+    const toggleNgBtn = document.getElementById("toggleNgBtn");
+    const classListPanelEl = document.getElementById("classListPanel");
+    const classListCountEl = document.getElementById("classListCount");
+    const toggleClassListBtn = document.getElementById("toggleClassListBtn");
+    const autosaveStatusEl = document.getElementById("autosaveStatus");
+
+    let currentGroups = [];
+    let activeClassName = "";
+    let autosaveTimer = null;
+
+    function loadStore() {
+      try {
+        return JSON.parse(localStorage.getItem(storageKey)) || { classes: {} };
+      } catch {
+        return { classes: {} };
+      }
+    }
+
+    function saveStore(store) {
+      localStorage.setItem(storageKey, JSON.stringify(store));
+    }
+
+    function showMessage(text, type = "success") {
+      messageEl.textContent = text;
+      messageEl.className = `message show ${type}`;
+    }
+
+    function clearMessage() {
+      messageEl.textContent = "";
+      messageEl.className = "message";
+    }
+
+    function getNameLines() {
+      return namesEl.value
+        .split(/\r?\n/)
+        .map(name => name.trim())
+        .filter(Boolean);
+    }
+
+    function parseNames() {
+      const seen = new Set();
+      return getNameLines()
+        .filter(name => {
+          const key = name.replace(/\s+/g, " ");
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+
+    function findDuplicateNames() {
+      const seen = new Set();
+      const duplicates = new Set();
+      getNameLines().forEach(name => {
+        const key = name.replace(/\s+/g, " ");
+        if (seen.has(key)) duplicates.add(name);
+        seen.add(key);
+      });
+      return Array.from(duplicates);
+    }
+
+    function updateStudentCount() {
+      studentCountEl.textContent = `${parseNames().length}人`;
+    }
+
+    function clearResult() {
+      currentGroups = [];
+      resultInfoEl.textContent = "未作成";
+      resultEl.innerHTML = '<p class="empty">左側に名簿を貼り付けて、「班分けする」を押してください。</p>';
+    }
+
+    function createPairRow(a = "", b = "") {
+      const row = document.createElement("div");
+      row.className = "pair-row";
+      row.innerHTML = `
+        <input class="pair-a" placeholder="生徒名1" value="${escapeHtml(a)}">
+        <input class="pair-b" placeholder="生徒名2" value="${escapeHtml(b)}">
+        <button class="danger" type="button" aria-label="削除">削除</button>
+      `;
+      row.querySelector("button").addEventListener("click", () => {
+        row.remove();
+        updateNgStatus();
+        scheduleAutoSave();
+      });
+      return row;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function getPairs() {
+      return Array.from(pairsEl.querySelectorAll(".pair-row"))
+        .map(row => [
+          row.querySelector(".pair-a").value.trim(),
+          row.querySelector(".pair-b").value.trim()
+        ])
+        .filter(([a, b]) => a && b && a !== b);
+    }
+
+    function setPairs(pairs) {
+      pairsEl.innerHTML = "";
+      if (!pairs.length) {
+        pairsEl.appendChild(createPairRow());
+        updateNgStatus();
+        return;
+      }
+      pairs.forEach(([a, b]) => pairsEl.appendChild(createPairRow(a, b)));
+      updateNgStatus();
+    }
+
+    function updateNgStatus() {
+      const count = getPairs().length;
+      const isHidden = ngEditorEl.hidden;
+      ngStatusEl.textContent = isHidden
+        ? `班分け詳細は非表示中（${count}件）`
+        : `班分け詳細を表示中（${count}件）`;
+      toggleNgBtn.textContent = isHidden ? "班分け詳細を開く" : "班分け詳細を隠す";
+    }
+
+    function toggleNgEditor() {
+      ngEditorEl.hidden = !ngEditorEl.hidden;
+      updateNgStatus();
+    }
+
+    function renderSavedClasses() {
+      const store = loadStore();
+      const names = Object.keys(store.classes).sort((a, b) => a.localeCompare(b, "ja"));
+      savedClassesEl.innerHTML = "";
+      classListCountEl.textContent = `${names.length}件`;
+      if (!names.length) {
+        savedClassesEl.innerHTML = '<p class="empty">保存済みクラスはまだありません。</p>';
+        return;
+      }
+      names.forEach(name => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `class-chip ${name === classNameEl.value.trim() ? "active" : ""}`;
+        button.textContent = name;
+        button.addEventListener("click", () => loadClass(name));
+        savedClassesEl.appendChild(button);
+      });
+    }
+
+    function toggleClassList() {
+      classListPanelEl.hidden = !classListPanelEl.hidden;
+      toggleClassListBtn.textContent = classListPanelEl.hidden
+        ? "保存クラス一覧を開く"
+        : "保存クラス一覧を隠す";
+    }
+
+    function setAutosaveStatus(text) {
+      autosaveStatusEl.textContent = text;
+    }
+
+    function saveCurrentClass(options = {}) {
+      const className = classNameEl.value.trim();
+      if (!className) {
+        if (!options.silent) showMessage("クラス名を入力してください。", "error");
+        setAutosaveStatus("クラス名を入力すると、編集内容は自動保存されます。");
+        return;
+      }
+      const store = loadStore();
+      if (activeClassName && activeClassName !== className && store.classes[className]) {
+        setAutosaveStatus(`「${className}」は既にあります。別のクラス名にしてください。`);
+        if (!options.silent) showMessage(`「${className}」は既に保存されています。上書きしないよう、別のクラス名にしてください。`, "error");
+        return;
+      }
+      if (activeClassName && activeClassName !== className && store.classes[activeClassName]) {
+        delete store.classes[activeClassName];
+      }
+      store.classes[className] = {
+        namesText: namesEl.value,
+        pairs: getPairs(),
+        groups: currentGroups
+      };
+      store.lastClassName = className;
+      saveStore(store);
+      activeClassName = className;
+      renderSavedClasses();
+      setAutosaveStatus(`${className} は自動保存されています。`);
+      if (!options.silent) showMessage(`${className} の生徒一覧、班分け詳細、班分け結果を保存しました。`);
+    }
+
+    function scheduleAutoSave() {
+      window.clearTimeout(autosaveTimer);
+      const className = classNameEl.value.trim();
+      if (!className) {
+        setAutosaveStatus("クラス名を入力すると、編集内容は自動保存されます。");
+        return;
+      }
+      setAutosaveStatus("編集中です。まもなく自動保存されます。");
+      autosaveTimer = window.setTimeout(() => {
+        saveCurrentClass({ silent: true });
+      }, 350);
+    }
+
+    function loadClass(className) {
+      const store = loadStore();
+      const classData = store.classes[className] || {};
+      classNameEl.value = className;
+      activeClassName = className;
+      namesEl.value = classData.namesText || "";
+      setPairs(classData.pairs || []);
+      updateStudentCount();
+      if (Array.isArray(classData.groups) && classData.groups.length) {
+        currentGroups = classData.groups;
+        renderGroups(currentGroups);
+      } else {
+        clearResult();
+      }
+      renderSavedClasses();
+      setAutosaveStatus(`${className} は自動保存されています。`);
+      clearMessage();
+    }
+
+    function handleClassNameInput() {
+      const className = classNameEl.value.trim();
+      if (activeClassName && className !== activeClassName) {
+        if (className) {
+          setAutosaveStatus("クラス名を変更中です。まもなく自動保存されます。");
+          scheduleAutoSave();
+        } else {
+          setAutosaveStatus("クラス名を入力すると、編集内容は自動保存されます。");
+        }
+      } else if (!activeClassName && className) {
+        setAutosaveStatus("生徒一覧や班分け詳細を入力すると、自動保存されます。");
+      } else if (!className) {
+        setAutosaveStatus("クラス名を入力すると、編集内容は自動保存されます。");
+      }
+      renderSavedClasses();
+    }
+
+    function createNewClass() {
+      window.clearTimeout(autosaveTimer);
+      const store = loadStore();
+      delete store.lastClassName;
+      saveStore(store);
+      activeClassName = "";
+      classNameEl.value = "";
+      namesEl.value = "";
+      setPairs([]);
+      updateStudentCount();
+      clearResult();
+      renderSavedClasses();
+      setAutosaveStatus("新しいクラス名を入力すると、自動保存されます。");
+      showMessage("新しいクラスを作成できます。クラス名と生徒一覧を入力してください。");
+    }
+
+    function deleteCurrentClass() {
+      const className = classNameEl.value.trim();
+      if (!className) {
+        showMessage("削除するクラス名を選ぶか入力してください。", "error");
+        return;
+      }
+
+      const store = loadStore();
+      if (!store.classes[className]) {
+        showMessage("保存されているクラスが見つかりません。", "error");
+        return;
+      }
+
+      const ok = confirm(`${className} の保存データを削除しますか？`);
+      if (!ok) return;
+
+      delete store.classes[className];
+      if (store.lastClassName === className) {
+        delete store.lastClassName;
+      }
+      saveStore(store);
+      classNameEl.value = "";
+      namesEl.value = "";
+      activeClassName = "";
+      setPairs([]);
+      updateStudentCount();
+      clearResult();
+      renderSavedClasses();
+      setAutosaveStatus("クラス名を入力すると、編集内容は自動保存されます。");
+      showMessage(`${className} を削除しました。`);
+    }
+
+    function buildConflictMap(names, pairs) {
+      const nameSet = new Set(names);
+      const conflicts = new Map(names.map(name => [name, new Set()]));
+      const missing = [];
+
+      pairs.forEach(([a, b]) => {
+        if (!nameSet.has(a) || !nameSet.has(b)) {
+          missing.push(`${a} / ${b}`);
+          return;
+        }
+        conflicts.get(a).add(b);
+        conflicts.get(b).add(a);
+      });
+
+      return { conflicts, missing };
+    }
+
+    function shuffle(items) {
+      const copied = [...items];
+      for (let i = copied.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copied[i], copied[j]] = [copied[j], copied[i]];
+      }
+      return copied;
+    }
+
+    function canJoin(group, student, conflicts) {
+      return group.every(member => !conflicts.get(student)?.has(member));
+    }
+
+    function makeGroups(names, groupCount, conflicts) {
+      const sizes = Array.from({ length: groupCount }, (_, index) =>
+        Math.floor(names.length / groupCount) + (index < names.length % groupCount ? 1 : 0)
+      );
+
+      for (let attempt = 0; attempt < 700; attempt += 1) {
+        const groups = Array.from({ length: groupCount }, () => []);
+        const order = shuffle(names).sort((a, b) =>
+          (conflicts.get(b)?.size || 0) - (conflicts.get(a)?.size || 0)
+        );
+
+        if (placeStudent(0, order, groups, sizes, conflicts)) {
+          return groups;
+        }
+      }
+      return null;
+    }
+
+    function placeStudent(index, order, groups, sizes, conflicts) {
+      if (index >= order.length) return true;
+
+      const student = order[index];
+      const candidates = shuffle(groups.map((group, groupIndex) => ({
+        group,
+        groupIndex,
+        remaining: sizes[groupIndex] - group.length
+      }))).sort((a, b) => b.remaining - a.remaining);
+
+      for (const candidate of candidates) {
+        if (candidate.group.length >= sizes[candidate.groupIndex]) continue;
+        if (!canJoin(candidate.group, student, conflicts)) continue;
+        candidate.group.push(student);
+        if (placeStudent(index + 1, order, groups, sizes, conflicts)) return true;
+        candidate.group.pop();
+      }
+      return false;
+    }
+
+    function renderGroups(groups) {
+      resultEl.innerHTML = "";
+      groups.forEach((group, index) => {
+        const card = document.createElement("section");
+        card.className = "group";
+        card.innerHTML = `
+          <div class="group-title">
+            <span>${index + 1}班</span>
+            <span>${group.length}人</span>
+          </div>
+          <ol>${group.map(name => `<li>${escapeHtml(name)}</li>`).join("")}</ol>
+        `;
+        resultEl.appendChild(card);
+      });
+      resultInfoEl.textContent = `${groups.length}班`;
+    }
+
+    function runGrouping() {
+      clearMessage();
+      const duplicates = findDuplicateNames();
+      if (duplicates.length) {
+        showMessage(`同じ名前が複数あります：${duplicates.join("、")}。区別できるように名前を変更してください。`, "error");
+        return;
+      }
+
+      const names = parseNames();
+      const groupCount = Number(groupCountEl.value);
+
+      if (names.length < 2) {
+        showMessage("名簿は2人以上入力してください。", "error");
+        return;
+      }
+
+      if (!Number.isInteger(groupCount) || groupCount < 1) {
+        showMessage("班の数は1以上の数字で入力してください。", "error");
+        return;
+      }
+
+      if (groupCount > names.length) {
+        showMessage("班の数が人数より多くなっています。", "error");
+        return;
+      }
+
+      const { conflicts, missing } = buildConflictMap(names, getPairs());
+      if (missing.length) {
+        const warningText = `名簿に見つからない詳細条件があります：${missing.join("、")}`;
+        showMessage(warningText, "warning");
+        const ok = confirm(`${warningText}\n\n該当しない条件は無視して、班分けを続けますか？`);
+        if (!ok) {
+          showMessage("班分けを中止しました。名簿または班分け詳細を確認してください。", "error");
+          return;
+        }
+      }
+
+      const groups = makeGroups(names, groupCount, conflicts);
+      if (!groups) {
+        showMessage("この条件では班分けを作れませんでした。班数を増やすか、詳細条件を少し減らしてください。", "error");
+        return;
+      }
+
+      currentGroups = groups;
+      renderGroups(groups);
+      saveCurrentClass({ silent: true });
+      if (missing.length) {
+        showMessage(`班分けができました。名簿に見つからない詳細条件は無視しました：${missing.join("、")}`, "warning");
+      } else {
+        showMessage("班分けができました。気に入らない場合は、もう一度押すと別案を作れます。");
+      }
+    }
+
+    function getResultRows() {
+      const rows = [["班", "生徒名"]];
+      currentGroups.forEach((group, index) => {
+        group.forEach(name => rows.push([`${index + 1}班`, name]));
+      });
+      return rows;
+    }
+
+    function getDownloadName(extension) {
+      const baseName = classNameEl.value.trim() || "班分け結果";
+      return `${baseName}.${extension}`;
+    }
+
+    function downloadCsv() {
+      if (!currentGroups.length) {
+        showMessage("CSV保存できる結果がまだありません。", "error");
+        return;
+      }
+
+      const csv = getResultRows()
+        .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
+        .join("\r\n");
+      const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = getDownloadName("csv");
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function xmlEscape(value) {
+      return String(value).replace(/[<>&'"]/g, char => ({
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        "'": "&apos;",
+        '"': "&quot;"
+      }[char]));
+    }
+
+    function columnName(index) {
+      let name = "";
+      let number = index + 1;
+      while (number > 0) {
+        const remainder = (number - 1) % 26;
+        name = String.fromCharCode(65 + remainder) + name;
+        number = Math.floor((number - 1) / 26);
+      }
+      return name;
+    }
+
+    function crc32(bytes) {
+      let crc = -1;
+      for (const byte of bytes) {
+        crc ^= byte;
+        for (let i = 0; i < 8; i += 1) {
+          crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+        }
+      }
+      return (crc ^ -1) >>> 0;
+    }
+
+    function concatBytes(parts) {
+      const length = parts.reduce((sum, part) => sum + part.length, 0);
+      const output = new Uint8Array(length);
+      let offset = 0;
+      parts.forEach(part => {
+        output.set(part, offset);
+        offset += part.length;
+      });
+      return output;
+    }
+
+    function numberBytes(numbers) {
+      return Uint8Array.from(numbers);
+    }
+
+    function uint16(value) {
+      return numberBytes([value & 255, (value >>> 8) & 255]);
+    }
+
+    function uint32(value) {
+      return numberBytes([
+        value & 255,
+        (value >>> 8) & 255,
+        (value >>> 16) & 255,
+        (value >>> 24) & 255
+      ]);
+    }
+
+    function createZip(files) {
+      const encoder = new TextEncoder();
+      const localParts = [];
+      const centralParts = [];
+      let offset = 0;
+
+      files.forEach(file => {
+        const nameBytes = encoder.encode(file.name);
+        const dataBytes = encoder.encode(file.content);
+        const checksum = crc32(dataBytes);
+
+        const localHeader = concatBytes([
+          uint32(0x04034b50),
+          uint16(20),
+          uint16(0),
+          uint16(0),
+          uint16(0),
+          uint16(0),
+          uint32(checksum),
+          uint32(dataBytes.length),
+          uint32(dataBytes.length),
+          uint16(nameBytes.length),
+          uint16(0),
+          nameBytes
+        ]);
+
+        localParts.push(localHeader, dataBytes);
+
+        const centralHeader = concatBytes([
+          uint32(0x02014b50),
+          uint16(20),
+          uint16(20),
+          uint16(0),
+          uint16(0),
+          uint16(0),
+          uint16(0),
+          uint32(checksum),
+          uint32(dataBytes.length),
+          uint32(dataBytes.length),
+          uint16(nameBytes.length),
+          uint16(0),
+          uint16(0),
+          uint16(0),
+          uint16(0),
+          uint32(0),
+          uint32(offset),
+          nameBytes
+        ]);
+
+        centralParts.push(centralHeader);
+        offset += localHeader.length + dataBytes.length;
+      });
+
+      const centralDirectory = concatBytes(centralParts);
+      const localFiles = concatBytes(localParts);
+      const endRecord = concatBytes([
+        uint32(0x06054b50),
+        uint16(0),
+        uint16(0),
+        uint16(files.length),
+        uint16(files.length),
+        uint32(centralDirectory.length),
+        uint32(localFiles.length),
+        uint16(0)
+      ]);
+
+      return concatBytes([localFiles, centralDirectory, endRecord]);
+    }
+
+    function createXlsxBlob(rows) {
+      const sheetRows = rows.map((row, rowIndex) => {
+        const cells = row.map((value, columnIndex) => {
+          const cellRef = `${columnName(columnIndex)}${rowIndex + 1}`;
+          const style = rowIndex === 0 ? ' s="1"' : "";
+          return `<c r="${cellRef}" t="inlineStr"${style}><is><t>${xmlEscape(value)}</t></is></c>`;
+        }).join("");
+        return `<row r="${rowIndex + 1}">${cells}</row>`;
+      }).join("");
+
+      const files = [
+        {
+          name: "[Content_Types].xml",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`
+        },
+        {
+          name: "_rels/.rels",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`
+        },
+        {
+          name: "xl/workbook.xml",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="班分け結果" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>`
+        },
+        {
+          name: "xl/_rels/workbook.xml.rels",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`
+        },
+        {
+          name: "xl/styles.xml",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="2">
+    <font><sz val="11"/><name val="Calibri"/></font>
+    <font><b/><sz val="11"/><name val="Calibri"/></font>
+  </fonts>
+  <fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
+  <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="2">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+  </cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`
+        },
+        {
+          name: "xl/worksheets/sheet1.xml",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <cols>
+    <col min="1" max="1" width="12" customWidth="1"/>
+    <col min="2" max="2" width="24" customWidth="1"/>
+  </cols>
+  <sheetData>${sheetRows}</sheetData>
+</worksheet>`
+        }
+      ];
+
+      return new Blob([createZip(files)], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+    }
+
+    function downloadExcel() {
+      if (!currentGroups.length) {
+        showMessage("Excel保存できる結果がまだありません。", "error");
+        return;
+      }
+
+      const blob = createXlsxBlob(getResultRows());
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = getDownloadName("xlsx");
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById("addPairBtn").addEventListener("click", () => {
+      pairsEl.appendChild(createPairRow());
+      updateNgStatus();
+      scheduleAutoSave();
+    });
+    toggleNgBtn.addEventListener("click", toggleNgEditor);
+    document.getElementById("newClassBtn").addEventListener("click", createNewClass);
+    toggleClassListBtn.addEventListener("click", toggleClassList);
+    pairsEl.addEventListener("input", () => {
+      updateNgStatus();
+      scheduleAutoSave();
+    });
+    document.getElementById("saveClassBtn").addEventListener("click", saveCurrentClass);
+    document.getElementById("deleteClassBtn").addEventListener("click", deleteCurrentClass);
+    document.getElementById("makeBtn").addEventListener("click", runGrouping);
+    document.getElementById("downloadBtn").addEventListener("click", downloadCsv);
+    document.getElementById("excelBtn").addEventListener("click", downloadExcel);
+    document.getElementById("printBtn").addEventListener("click", () => window.print());
+    namesEl.addEventListener("input", () => {
+      updateStudentCount();
+      scheduleAutoSave();
+    });
+    classNameEl.addEventListener("input", handleClassNameInput);
+
+    function initializeApp() {
+      const store = loadStore();
+      if (store.lastClassName && store.classes[store.lastClassName]) {
+        loadClass(store.lastClassName);
+        return;
+      }
+      setPairs([]);
+      renderSavedClasses();
+      updateStudentCount();
+      clearResult();
+    }
+
+    initializeApp();
+  </script>
+</body>
+</html>
