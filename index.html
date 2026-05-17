@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
@@ -270,6 +270,43 @@
       background: #f0fdf4;
     }
 
+    .result-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    body.result-fullscreen {
+      overflow: hidden;
+    }
+
+    .result-panel.fullscreen-result {
+      position: fixed;
+      inset: 14px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--panel);
+    }
+
+    .result-panel.fullscreen-result .panel-head {
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .result-panel.fullscreen-result .panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .result-panel.fullscreen-result .groups {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
     .groups {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -475,10 +512,13 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel result-panel" id="resultPanel">
         <div class="panel-head">
           <h2>班分け結果</h2>
-          <span class="badge" id="resultInfo">未作成</span>
+          <div class="result-controls">
+            <span class="badge" id="resultInfo">未作成</span>
+            <button class="secondary" id="fullscreenBtn" type="button">全画面表示</button>
+          </div>
         </div>
         <div class="panel-body">
           <div id="result" class="groups">
@@ -496,6 +536,8 @@
     const classNameEl = document.getElementById("className");
     const pairsEl = document.getElementById("pairs");
     const resultEl = document.getElementById("result");
+    const resultPanelEl = document.getElementById("resultPanel");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
     const messageEl = document.getElementById("message");
     const savedClassesEl = document.getElementById("savedClasses");
     const studentCountEl = document.getElementById("studentCount");
@@ -874,6 +916,29 @@
       resultInfoEl.textContent = `${groups.length}班`;
     }
 
+    async function toggleResultFullscreen() {
+      const shouldOpen = !resultPanelEl.classList.contains("fullscreen-result");
+      resultPanelEl.classList.toggle("fullscreen-result", shouldOpen);
+      document.body.classList.toggle("result-fullscreen", shouldOpen);
+      fullscreenBtn.textContent = shouldOpen ? "通常表示に戻す" : "全画面表示";
+
+      try {
+        if (shouldOpen && resultPanelEl.requestFullscreen) {
+          await resultPanelEl.requestFullscreen();
+        } else if (!shouldOpen && document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
+      } catch {
+        // ブラウザが全画面APIを許可しない場合も、画面内の拡大表示は続けます。
+      }
+    }
+
+    function closeResultFullscreen() {
+      resultPanelEl.classList.remove("fullscreen-result");
+      document.body.classList.remove("result-fullscreen");
+      fullscreenBtn.textContent = "全画面表示";
+    }
+
     function runGrouping() {
       clearMessage();
       const duplicates = findDuplicateNames();
@@ -1201,6 +1266,10 @@
     document.getElementById("makeBtn").addEventListener("click", runGrouping);
     document.getElementById("downloadBtn").addEventListener("click", downloadCsv);
     document.getElementById("excelBtn").addEventListener("click", downloadExcel);
+    fullscreenBtn.addEventListener("click", toggleResultFullscreen);
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement) closeResultFullscreen();
+    });
     document.getElementById("printBtn").addEventListener("click", () => window.print());
     namesEl.addEventListener("input", () => {
       updateStudentCount();
@@ -1224,3 +1293,4 @@
   </script>
 </body>
 </html>
+
