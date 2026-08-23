@@ -728,13 +728,20 @@
       groupSizeFieldEl.hidden = !useSize;
     }
 
-    function getGroupCountForNames(namesLength) {
+    function getGroupingSetting(namesLength) {
       if (groupModeEl.value === "size") {
         const groupSize = Number(groupSizeEl.value);
         if (!Number.isInteger(groupSize) || groupSize < 1) {
           return { error: "1班の人数は1以上の数字で入力してください。" };
         }
-        return { groupCount: Math.ceil(namesLength / groupSize) };
+
+        const sizes = [];
+        let remaining = namesLength;
+        while (remaining > 0) {
+          sizes.push(Math.min(groupSize, remaining));
+          remaining -= groupSize;
+        }
+        return { sizes, mode: "size" };
       }
 
       const groupCount = Number(groupCountEl.value);
@@ -744,7 +751,11 @@
       if (groupCount > namesLength) {
         return { error: "班の数が人数より多くなっています。" };
       }
-      return { groupCount };
+
+      const sizes = Array.from({ length: groupCount }, (_, index) =>
+        Math.floor(namesLength / groupCount) + (index < namesLength % groupCount ? 1 : 0)
+      );
+      return { sizes, mode: "count" };
     }
 
     function saveCurrentClass(options = {}) {
@@ -915,13 +926,9 @@
       return group.every(member => !conflicts.get(student)?.has(member));
     }
 
-    function makeGroups(names, groupCount, conflicts) {
-      const sizes = Array.from({ length: groupCount }, (_, index) =>
-        Math.floor(names.length / groupCount) + (index < names.length % groupCount ? 1 : 0)
-      );
-
+    function makeGroups(names, sizes, conflicts) {
       for (let attempt = 0; attempt < 700; attempt += 1) {
-        const groups = Array.from({ length: groupCount }, () => []);
+        const groups = Array.from({ length: sizes.length }, () => []);
         const order = shuffle(names).sort((a, b) =>
           (conflicts.get(b)?.size || 0) - (conflicts.get(a)?.size || 0)
         );
@@ -1008,12 +1015,11 @@
         return;
       }
 
-      const groupSetting = getGroupCountForNames(names.length);
+      const groupSetting = getGroupingSetting(names.length);
       if (groupSetting.error) {
         showMessage(groupSetting.error, "error");
         return;
       }
-      const groupCount = groupSetting.groupCount;
 
       const { conflicts, missing } = buildConflictMap(names, getPairs());
       if (missing.length) {
@@ -1022,9 +1028,9 @@
 
       }
 
-      const groups = makeGroups(names, groupCount, conflicts);
+      const groups = makeGroups(names, groupSetting.sizes, conflicts);
       if (!groups) {
-        showMessage("この条件では班分けを作れませんでした。班数を増やすか、詳細条件を少し減らしてください。", "error");
+        showMessage(groupSetting.mode === "size" ? "この条件では班分けを作れませんでした。1班の人数を少なくするか、詳細条件を少し減らしてください。" : "この条件では班分けを作れませんでした。班数を増やすか、詳細条件を少し減らしてください。", "error");
         return;
       }
 
@@ -1342,6 +1348,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
