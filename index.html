@@ -482,8 +482,22 @@
           </div>
 
           <div class="field">
+            <label for="groupMode">班分け方法</label>
+            <select id="groupMode">
+              <option value="count">班の数を指定する</option>
+              <option value="size">1班の人数を指定する</option>
+            </select>
+          </div>
+
+          <div class="field" id="groupCountField">
             <label for="groupCount">班の数</label>
             <input id="groupCount" type="number" min="1" value="6">
+          </div>
+
+          <div class="field" id="groupSizeField" hidden>
+            <label for="groupSize">1班の人数</label>
+            <input id="groupSize" type="number" min="1" value="4">
+            <p class="hint">指定した人数を超えないように、自動で班数を決めます。</p>
           </div>
 
           <div class="field">
@@ -532,7 +546,11 @@
   <script>
     const storageKey = "class-group-maker-v1";
     const namesEl = document.getElementById("names");
+    const groupModeEl = document.getElementById("groupMode");
     const groupCountEl = document.getElementById("groupCount");
+    const groupSizeEl = document.getElementById("groupSize");
+    const groupCountFieldEl = document.getElementById("groupCountField");
+    const groupSizeFieldEl = document.getElementById("groupSizeField");
     const classNameEl = document.getElementById("className");
     const pairsEl = document.getElementById("pairs");
     const resultEl = document.getElementById("result");
@@ -704,6 +722,30 @@
     function setAutosaveStatus(text) {
       autosaveStatusEl.textContent = text;
     }
+    function updateGroupingModeFields() {
+      const useSize = groupModeEl.value === "size";
+      groupCountFieldEl.hidden = useSize;
+      groupSizeFieldEl.hidden = !useSize;
+    }
+
+    function getGroupCountForNames(namesLength) {
+      if (groupModeEl.value === "size") {
+        const groupSize = Number(groupSizeEl.value);
+        if (!Number.isInteger(groupSize) || groupSize < 1) {
+          return { error: "1班の人数は1以上の数字で入力してください。" };
+        }
+        return { groupCount: Math.ceil(namesLength / groupSize) };
+      }
+
+      const groupCount = Number(groupCountEl.value);
+      if (!Number.isInteger(groupCount) || groupCount < 1) {
+        return { error: "班の数は1以上の数字で入力してください。" };
+      }
+      if (groupCount > namesLength) {
+        return { error: "班の数が人数より多くなっています。" };
+      }
+      return { groupCount };
+    }
 
     function saveCurrentClass(options = {}) {
       const className = classNameEl.value.trim();
@@ -723,6 +765,9 @@
       }
       store.classes[className] = {
         namesText: namesEl.value,
+        groupingMode: groupModeEl.value,
+        groupCountValue: groupCountEl.value,
+        groupSizeValue: groupSizeEl.value,
         pairs: getPairs(),
         groups: currentGroups
       };
@@ -753,6 +798,10 @@
       classNameEl.value = className;
       activeClassName = className;
       namesEl.value = classData.namesText || "";
+      groupModeEl.value = classData.groupingMode || "count";
+      groupCountEl.value = classData.groupCountValue || "6";
+      groupSizeEl.value = classData.groupSizeValue || "4";
+      updateGroupingModeFields();
       setPairs(classData.pairs || []);
       updateStudentCount();
       if (Array.isArray(classData.groups) && classData.groups.length) {
@@ -857,6 +906,11 @@
       return copied;
     }
 
+    function assignNumberedGroupsRandomly(groups) {
+      // 班番号は1班から順番に表示し、どのメンバー組が何班になるかだけ毎回入れ替えます。
+      return shuffle(groups).map(group => shuffle(group));
+    }
+
     function canJoin(group, student, conflicts) {
       return group.every(member => !conflicts.get(student)?.has(member));
     }
@@ -948,32 +1002,24 @@
       }
 
       const names = parseNames();
-      const groupCount = Number(groupCountEl.value);
 
       if (names.length < 2) {
         showMessage("名簿は2人以上入力してください。", "error");
         return;
       }
 
-      if (!Number.isInteger(groupCount) || groupCount < 1) {
-        showMessage("班の数は1以上の数字で入力してください。", "error");
+      const groupSetting = getGroupCountForNames(names.length);
+      if (groupSetting.error) {
+        showMessage(groupSetting.error, "error");
         return;
       }
-
-      if (groupCount > names.length) {
-        showMessage("班の数が人数より多くなっています。", "error");
-        return;
-      }
+      const groupCount = groupSetting.groupCount;
 
       const { conflicts, missing } = buildConflictMap(names, getPairs());
       if (missing.length) {
         const warningText = `名簿に見つからない詳細条件があります：${missing.join("、")}`;
         showMessage(warningText, "warning");
-        const ok = confirm(`${warningText}\n\n該当しない条件は無視して、班分けを続けますか？`);
-        if (!ok) {
-          showMessage("班分けを中止しました。名簿または班分け詳細を確認してください。", "error");
-          return;
-        }
+
       }
 
       const groups = makeGroups(names, groupCount, conflicts);
@@ -982,14 +1028,10 @@
         return;
       }
 
-      currentGroups = groups;
-      renderGroups(groups);
+      currentGroups = assignNumberedGroupsRandomly(groups);
+      renderGroups(currentGroups);
       saveCurrentClass({ silent: true });
-      if (missing.length) {
-        showMessage(`班分けができました。名簿に見つからない詳細条件は無視しました：${missing.join("、")}`, "warning");
-      } else {
-        showMessage("班分けができました。気に入らない場合は、もう一度押すと別案を作れます。");
-      }
+      showMessage("班分けができました。気に入らない場合は、もう一度押すと別案を作れます。");
     }
 
     function getResultRows() {
@@ -1271,6 +1313,12 @@
       if (!document.fullscreenElement) closeResultFullscreen();
     });
     document.getElementById("printBtn").addEventListener("click", () => window.print());
+    groupModeEl.addEventListener("change", () => {
+      updateGroupingModeFields();
+      scheduleAutoSave();
+    });
+    groupCountEl.addEventListener("input", scheduleAutoSave);
+    groupSizeEl.addEventListener("input", scheduleAutoSave);
     namesEl.addEventListener("input", () => {
       updateStudentCount();
       scheduleAutoSave();
@@ -1284,6 +1332,7 @@
         return;
       }
       setPairs([]);
+      updateGroupingModeFields();
       renderSavedClasses();
       updateStudentCount();
       clearResult();
@@ -1293,4 +1342,12 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
 
